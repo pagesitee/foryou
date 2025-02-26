@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal do Usuário - SECAJ</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="icone.png">
+    <!-- Inclua a biblioteca Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Ícone de menu (Font Awesome) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Manifest do PWA -->
+    <link rel="manifest" href="./manifest.json">
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Importações do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyD1wD2KTGnM0vWqs8eGiFLQdOaQh77a5uw",
+            authDomain: "portal-secaj.firebaseapp.com",
+            projectId: "portal-secaj",
+            storageBucket: "portal-secaj.appspot.com",
+            messagingSenderId: "580471459735",
+            appId: "1:580471459735:web:3092f388f6d4b3b48afed2",
+            measurementId: "G-CYSXWJZHTZ"
+        };
+
+        // Inicialização do Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Função para buscar e exibir os meses cadastrados
+        async function renderMonths() {
+            const monthsCharts = document.getElementById('months-charts');
+            monthsCharts.innerHTML = '';
+
+            const querySnapshot = await getDocs(collection(db, "months"));
+            const monthsData = [];
+            querySnapshot.forEach((doc) => {
+                const month = doc.data();
+                monthsData.push(month);
+            });
+
+            // Renderizar gráfico inicial com todos os meses
+            const initialChartRow = document.createElement('div');
+            initialChartRow.className = 'chart-row';
+            initialChartRow.innerHTML = `
+                <div class="chart-title">Todos os Meses</div>
+                <div class="chart-container bar">
+                    <canvas id="initial-bar-chart"></canvas>
+                </div>
+                <hr class="separator">
+            `;
+            monthsCharts.appendChild(initialChartRow);
+            renderInitialBarChart('initial-bar-chart', monthsData);
+
+            // Renderizar gráficos detalhados para cada mês
+            querySnapshot.forEach((doc, index) => {
+                const month = doc.data();
+                const chartRow = document.createElement('div');
+                chartRow.className = 'chart-row';
+                chartRow.innerHTML = `
+                    <div class="chart-title">${month.name}</div>
+                    <div class="chart-container bar">
+                        <canvas id="bar-chart-${doc.id}"></canvas>
+                    </div>
+                    <div class="chart-container pie">
+                        <canvas id="pie-chart-${doc.id}"></canvas>
+                    </div>
+                    <div class="table-container">
+                        <table class="styled-table">
+                            <thead>
+                                <tr>
+                                    <th>Categoria</th>
+                                    <th>Quantidade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Processos Totais</td>
+                                    <td>${month.processes}</td>
+                                </tr>
+                                <tr>
+                                    <td>Maiores de 80</td>
+                                    <td>${month.over80}</td>
+                                </tr>
+                                <tr>
+                                    <td>Prioridade Legal</td>
+                                    <td>${month.legalPriority}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <hr class="separator">
+                `;
+                monthsCharts.appendChild(chartRow);
+
+                // Renderizar gráficos
+                renderHorizontalBarChart(`bar-chart-${doc.id}`, [month], [month.name]);
+                renderPieChart(`pie-chart-${doc.id}`, month);
+            });
+        }
+
+        // Função para buscar e exibir os objetos cadastrados
+        async function renderObjects() {
+            const objectsCharts = document.getElementById('objects-charts');
+            objectsCharts.innerHTML = '';
+
+            const querySnapshot = await getDocs(collection(db, "objects"));
+            const objectsData = [];
+            querySnapshot.forEach((doc) => {
+                const object = doc.data();
+                objectsData.push(object);
+            });
+
+            // Renderizar gráfico inicial com todos os objetos
+            const initialChartRow = document.createElement('div');
+            initialChartRow.className = 'chart-row';
+            initialChartRow.innerHTML = `
+                <div class="chart-title">Todos os Objetos</div>
+                <div class="chart-container bar">
+                    <canvas id="initial-bar-chart-obj"></canvas>
+                </div>
+                <hr class="separator">
+            `;
+            objectsCharts.appendChild(initialChartRow);
+            renderInitialBarChart('initial-bar-chart-obj', objectsData);
+
+            // Renderizar gráficos detalhados para cada objeto
+            querySnapshot.forEach((doc, index) => {
+                const object = doc.data();
+                const chartRow = document.createElement('div');
+                chartRow.className = 'chart-row';
+                chartRow.innerHTML = `
+                    <div class="chart-title">${object.name}</div>
+                    <div class="chart-container bar">
+                        <canvas id="bar-chart-obj-${doc.id}"></canvas>
+                    </div>
+                    <div class="chart-container pie">
+                        <canvas id="pie-chart-obj-${doc.id}"></canvas>
+                    </div>
+                    <div class="table-container">
+                        <table class="styled-table">
+                            <thead>
+                                <tr>
+                                    <th>Categoria</th>
+                                    <th>Quantidade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Processos Totais</td>
+                                    <td>${object.processes}</td>
+                                </tr>
+                                <tr>
+                                    <td>Maiores de 80</td>
+                                    <td>${object.over80}</td>
+                                </tr>
+                                <tr>
+                                    <td>Prioridade Legal</td>
+                                    <td>${object.legalPriority}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <hr class="separator">
+                `;
+                objectsCharts.appendChild(chartRow);
+
+                // Renderizar gráficos
+                renderHorizontalBarChart(`bar-chart-obj-${doc.id}`, [object], [object.name]);
+                renderPieChart(`pie-chart-obj-${doc.id}`, object);
+            });
+        }
+
+        // Função para buscar e exibir os documentos
+        async function renderDocuments() {
+            const documentsList = document.getElementById('documents-list');
+            documentsList.innerHTML = '';
+
+            const querySnapshot = await getDocs(collection(db, "documents"));
+            querySnapshot.forEach((doc) => {
+                const document = doc.data();
+                const documentDiv = document.createElement('div');
+                documentDiv.className = 'document-item';
+                documentDiv.innerHTML = `
+                    <h3>${document.title}</h3>
+                    <p>${document.description}</p>
+                    ${document.type === 'file' ? 
+                        `<a href="${document.url}" download>Baixar Arquivo</a>` : 
+                        `<a href="${document.url}" target="_blank">Acessar Link</a>`
+                    }
+                `;
+                documentsList.appendChild(documentDiv);
+            });
+        }
+
+        // Função para alternar o menu e empurrar a página
+        function toggleMenu() {
+            const menuSidebar = document.getElementById('menuSidebar');
+            const mainContent = document.querySelector('.main-content');
+            menuSidebar.classList.toggle('active');
+            mainContent.classList.toggle('pushed');
+        }
+
+        // Função para alternar entre abas
+        function showTab(tabName) {
+            // Esconder todas as abas
+            document.querySelectorAll('.content').forEach(content => {
+                content.style.display = 'none';
+            });
+
+            // Mostrar a aba selecionada
+            document.getElementById(tabName).style.display = 'block';
+
+            // Esconder a mensagem de boas-vindas ao clicar em qualquer aba
+            document.querySelector('.welcome-message').style.display = 'none';
+
+            // Fechar o menu após selecionar uma aba
+            toggleMenu();
+
+            // Renderizar os dados da aba selecionada
+            if (tabName === 'documents') {
+                renderDocuments();
+            } else if (tabName === 'objects') {
+                renderObjects();
+            } else if (tabName === 'months') {
+                renderMonths();
+            }
+
+            // Alterar a imagem de fundo ao selecionar uma aba
+            setRandomBackground();
+        }
+
+        // Função para sair
+        function logout() {
+            localStorage.removeItem('loggedInUser');
+            window.location.href = 'index.html';
+        }
+
+        // Função para escolher uma imagem de fundo aleatória
+        function setRandomBackground() {
+            const images = [
+                './Imagens/Imagem1.jpg',
+                './Imagens/Imagem2.jpg',
+                './Imagens/Imagem3.jpg',
+                './Imagens/Imagem4.jpg',
+                './Imagens/Imagem5.jpg',
+                './Imagens/Imagem6.jpg',
+                './Imagens/Imagem7.jpg'
+            ];
+            const randomImage = images[Math.floor(Math.random() * images.length)];
+            document.body.style.backgroundImage = `url('${randomImage}')`;
+        }
+
+        // Renderizar dados ao carregar a página
+        window.onload = () => {
+            const loggedInUser = localStorage.getItem('loggedInUser');
+            if (loggedInUser) {
+                // Exibir o nome do usuário no menu
+                const loggedInUserNameElement = document.getElementById('loggedInUserName');
+                if (loggedInUserNameElement) {
+                    loggedInUserNameElement.textContent = loggedInUser;
+                }
+            }
+
+            // Definir a imagem de fundo ao carregar a página
+            setRandomBackground();
+
+            // Esconder o conteúdo da primeira aba ao iniciar
+            document.getElementById('months').style.display = 'none';
+        };
+
+        // Tornar as funções globais para que possam ser chamadas no HTML
+        window.showTab = showTab;
+        window.logout = logout;
+        window.toggleMenu = toggleMenu;
+    </script>
+    <style>
+        /* Estilos Gerais */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            overflow: hidden;
+        }
+
+        /* Mensagem de boas-vindas */
+        .welcome-message {
+            background: rgba(128, 128, 128, 0.8); /* Caixa cinza transparente */
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            width: 80%;
+            max-width: 600px;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Toggle Simple Menu */
+        .menu-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: linear-gradient(to right, #2a5298, #1e3c72);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-toggle i {
+            font-size: 20px;
+        }
+
+        .menu-sidebar {
+            position: fixed;
+            top: 0;
+            left: -250px; /* Escondido inicialmente */
+            width: 250px;
+            height: 100vh;
+            background: rgba(42, 82, 152, 0.9); /* Azul escuro com transparência */
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            transition: left 0.3s ease;
+            z-index: 999;
+        }
+
+        .menu-sidebar.active {
+            left: 0; /* Mostrar o menu */
+        }
+
+        .menu-sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            margin-top: 60px; /* Espaço para o botão de toggle */
+        }
+
+        .menu-sidebar ul li {
+            padding: 15px;
+            color: #fff; /* Letras brancas */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: background 0.3s ease;
+            font-weight: bold; /* Negrito */
+        }
+
+        .menu-sidebar ul li:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-sidebar ul li:last-child {
+            border-bottom: none;
+        }
+
+        /* Texto no final do menu */
+        .menu-footer {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            text-align: center;
+            font-size: 10px;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* Conteúdo Principal */
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            margin-left: 0;
+            transition: margin-left 0.3s;
+            margin-top: 80px; /* Aumentado para evitar sobreposição com o botão do menu */
+            overflow-y: auto;
+            max-height: 85vh; /* Altura maior */
+            background: rgba(128, 128, 128, 0.8); /* Caixa cinza transparente */
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .main-content.pushed {
+            margin-left: 250px; /* Empurrar o conteúdo quando o menu está aberto */
+        }
+
+        .content {
+            display: none;
+            background: rgba(255, 255, 255, 0.9); /* Fundo branco mais opaco */
+            border-radius: 8px;
+            padding: 30px; /* Mais espaço interno */
+            margin: 30px; /* Mais espaço externo */
+            max-height: 75vh; /* Altura maior */
+            width: 90%; /* Largura maior */
+            overflow-y: auto; /* Habilita a rolagem vertical */
+        }
+
+        .content.active {
+            display: block;
+        }
+
+        /* Estilos para as abas de conteúdo */
+        #documents-content {
+            padding: 20px;
+        }
+
+        .document-item {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .document-item h3 {
+            margin-top: 0;
+        }
+
+        .document-item a {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+
+        .document-item a:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <!-- Toggle Simple Menu -->
+    <button class="menu-toggle" onclick="toggleMenu()">
+        <i class="fas fa-bars"></i>
+        <span>Menu</span>
+    </button>
+
+    <!-- Menu Sidebar -->
+    <div class="menu-sidebar" id="menuSidebar">
+        <ul>
+            <li onclick="showTab('months')">Meses e Processos</li>
+            <li onclick="showTab('objects')">Objetos e Processos</li>
+            <li onclick="showTab('documents')">Documentos</li>
+            <li onclick="logout()" style="color: #ff0000;">Sair</li>
+        </ul>
+        <!-- Texto no final do menu -->
+        <div class="menu-footer">
+            Pensado e desenvolvido por Fellipe Barbosa dos Santos.
+        </div>
+    </div>
+
+    <!-- Mensagem de boas-vindas -->
+    <div class="welcome-message">
+        Bem vindo ao Portal SECAJ. Clique em MENU e selecione a aba desejada.
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="main-content">
+        <!-- Aba de Meses e Processos -->
+        <div class="content" id="months">
+            <h2>Quantitativo de Processos por Mês</h2>
+            <div id="months-charts"></div>
+        </div>
+
+        <!-- Aba de Objetos e Processos -->
+        <div class="content" id="objects">
+            <h2>Quantitativo de Processos por Objeto</h2>
+            <div id="objects-charts"></div>
+        </div>
+
+        <!-- Aba de Documentos -->
+        <div class="content" id="documents">
+            <h2>Documentos</h2>
+            <div id="documents-list"></div>
+        </div>
+    </div>
+</body>
+</html>

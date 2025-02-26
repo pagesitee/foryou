@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Área do Administrador - Portal SECAJ</title>
+    <!-- Manifest do PWA -->
+    <link rel="manifest" href="./manifest.json">
+    <style>
+        /* Estilos Gerais */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Cabeçalho */
+        header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        /* Informações do Usuário e Botão Sair */
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logout-button {
+            background-color: #dc3545;
+            padding: 5px 10px;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .logout-button:hover {
+            background-color: #c82333;
+        }
+
+        /* Abas de Navegação */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            background-color: #0056b3;
+            padding: 10px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            color: white;
+            border-radius: 4px;
+            margin: 0 10px;
+            transition: background-color 0.3s;
+        }
+
+        .tab:hover {
+            background-color: #004080;
+        }
+
+        .tab.active {
+            background-color: #003366;
+        }
+
+        /* Conteúdo das Abas */
+        .content {
+            display: none;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 20px;
+        }
+
+        .content.active {
+            display: block;
+        }
+
+        /* Formulários */
+        .add-form {
+            margin-bottom: 20px;
+        }
+
+        .add-form input,
+        .add-form textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .add-form button {
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .add-form button:hover {
+            background-color: #218838;
+        }
+
+        /* Listas de Itens */
+        .month-item,
+        .object-item,
+        .document-item,
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+
+        .month-item:last-child,
+        .object-item:last-child,
+        .document-item:last-child,
+        .user-item:last-child {
+            border-bottom: none;
+        }
+
+        .month-item input,
+        .object-item input {
+            width: 45%;
+        }
+
+        /* Botões de Ação */
+        .delete-button {
+            background-color: #dc3545;
+            margin-left: 10px;
+        }
+
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+
+        .toggle-button {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        .toggle-button:hover {
+            background-color: #e0a800;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab {
+                margin: 5px 0;
+            }
+
+            .content {
+                margin: 10px;
+                padding: 10px;
+            }
+
+            .month-item, .object-item, .document-item, .user-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .month-item input, .object-item input {
+                width: 100%;
+                margin: 5px 0;
+            }
+
+            .add-form button {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 20px;
+            }
+
+            .logout-button {
+                padding: 4px 8px;
+            }
+
+            .tab {
+                padding: 8px 16px;
+            }
+
+            .add-form input, .add-form textarea {
+                font-size: 14px;
+            }
+
+            .month-item, .object-item, .document-item, .user-item {
+                font-size: 14px;
+            }
+        }
+    </style>
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Importações do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
+
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyD1wD2KTGnM0vWqs8eGiFLQdOaQh77a5uw",
+            authDomain: "portal-secaj.firebaseapp.com",
+            projectId: "portal-secaj",
+            storageBucket: "portal-secaj.appspot.com",
+            messagingSenderId: "580471459735",
+            appId: "1:580471459735:web:3092f388f6d4b3b48afed2",
+            measurementId: "G-CYSXWJZHTZ"
+        };
+
+        // Inicialização do Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // Função para alternar entre abas
+        function showTab(tabName) {
+            // Esconder todas as abas
+            document.querySelectorAll('.content').forEach(content => {
+                content.classList.remove('active');
+            });
+            // Remover a classe 'active' de todas as abas
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            // Mostrar a aba selecionada
+            document.getElementById(tabName).classList.add('active');
+            // Ativar a aba no menu
+            document.querySelector(`.tab[onclick="showTab('${tabName}')"]`).classList.add('active');
+        }
+
+        // Função para adicionar um mês
+        async function addMonth() {
+            const monthName = document.getElementById('monthName').value.trim();
+            const processCount = document.getElementById('monthProcessCount').value.trim();
+            const over80 = document.getElementById('monthOver80').value.trim();
+            const legalPriority = document.getElementById('monthLegalPriority').value.trim();
+
+            if (!monthName || !processCount || isNaN(processCount)) {
+                alert('Por favor, preencha todos os campos corretamente.');
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "months"), {
+                    name: monthName,
+                    processes: parseInt(processCount, 10),
+                    over80: parseInt(over80 || 0, 10),
+                    legalPriority: parseInt(legalPriority || 0, 10)
+                });
+                alert('Mês adicionado com sucesso!');
+                renderMonths();
+            } catch (error) {
+                console.error('Erro ao adicionar mês: ', error);
+                alert('Erro ao adicionar mês.');
+            }
+        }
+
+        // Função para renderizar os meses
+        async function renderMonths() {
+            const monthsList = document.getElementById('months-list');
+            monthsList.innerHTML = '';
+
+            const querySnapshot = await getDocs(collection(db, "months"));
+            querySnapshot.forEach((doc) => {
+                const month = doc.data();
+                const monthDiv = document.createElement('div');
+                monthDiv.className = 'month-item';
+                monthDiv.innerHTML = `
+                    <input type="text" value="${month.name}" onchange="updateMonth('${doc.id}', 'name', this.value)">
+                    <input type="number" value="${month.processes}" onchange="updateMonth('${doc.id}', 'processes', this.value)">
+                    <input type="number" value="${month.over80}" onchange="updateMonth('${doc.id}', 'over80', this.value)" placeholder="Maiores de 80">
+                    <input type="number" value="${month.legalPriority}" onchange="updateMonth('${doc.id}', 'legalPriority', this.value)" placeholder="Prioridade Legal">
+                    <button onclick="saveMonth('${doc.id}')">Salvar Edição</button>
+                    <button class="delete-button" onclick="deleteMonth('${doc.id}')">Excluir</button>
+                `;
+                monthsList.appendChild(monthDiv);
+            });
+        }
+
+        // Função para atualizar um mês
+        async function updateMonth(docId, field, value) {
+            try {
+                await updateDoc(doc(db, "months", docId), { [field]: value });
+                console.log('Mês atualizado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao atualizar mês: ', error);
+            }
+        }
+
+        // Função para excluir um mês
+        async function deleteMonth(docId) {
+            try {
+                await deleteDoc(doc(db, "months", docId));
+                alert('Mês excluído com sucesso!');
+                renderMonths();
+            } catch (error) {
+                console.error('Erro ao excluir mês: ', error);
+            }
+        }
+
+        // Função para adicionar um objeto
+        async function addObject() {
+            const objectName = document.getElementById('objectName').value.trim();
+            const processCount = document.getElementById('objectProcessCount').value.trim();
+            const over80 = document.getElementById('objectOver80').value.trim();
+            const legalPriority = document.getElementById('objectLegalPriority').value.trim();
+
+            if (!objectName || !processCount || isNaN(processCount)) {
+                alert('Por favor, preencha todos os campos corretamente.');
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "objects"), {
+                    name: objectName,
+                    processes: parseInt(processCount, 10),
+                    over80: parseInt(over80 || 0, 10),
+                    legalPriority: parseInt(legalPriority || 0, 10)
+                });
+                alert('Objeto adicionado com sucesso!');
+                renderObjects();
+            } catch (error) {
+                console.error('Erro ao adicionar objeto: ', error);
+                alert('Erro ao adicionar objeto.');
+            }
+        }
+
+        // Função para renderizar os objetos
+        async function renderObjects() {
+            const objectsList = document.getElementById('objects-list');
+            objectsList.innerHTML = '';
+
+            const querySnapshot = await getDocs(collection(db, "objects"));
+            querySnapshot.forEach((doc) => {
+                const object = doc.data();
+                const objectDiv = document.createElement('div');
+                objectDiv.className = 'object-item';
+                objectDiv.innerHTML = `
+                    <input type="text" value="${object.name}" onchange="updateObject('${doc.id}', 'name', this.value)">
+                    <input type="number" value="${object.processes}" onchange="updateObject('${doc.id}', 'processes', this.value)">
+                    <input type="number" value="${object.over80}" onchange="updateObject('${doc.id}', 'over80', this.value)" placeholder="Maiores de 80">
+                    <input type="number" value="${object.legalPriority}" onchange="updateObject('${doc.id}', 'legalPriority', this.value)" placeholder="Prioridade Legal">
+                    <button onclick="saveObject('${doc.id}')">Salvar Edição</button>
+                    <button class="delete-button" onclick="deleteObject('${doc.id}')">Excluir</button>
+                `;
+                objectsList.appendChild(objectDiv);
+            });
+        }
+
+        // Função para atualizar um objeto
+        async function updateObject(docId, field, value) {
+            try {
+                await updateDoc(doc(db, "objects", docId), { [field]: value });
+                console.log('Objeto atualizado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao atualizar objeto: ', error);
+            }
+        }
+
+        // Função para excluir um objeto
+        async function deleteObject(docId) {
+            try {
+                await deleteDoc(doc(db, "objects", docId));
+                alert('Objeto excluído com sucesso!');
+                renderObjects();
+            } catch (error) {
+                console.error('Erro ao excluir objeto: ', error);
+            }
+        }
+
+        // Função para adicionar um documento (arquivo ou link)
+        async function addDocument() {
+            const documentType = document.getElementById('documentType').value;
+            const documentTitle = document.getElementById('documentTitle').value.trim();
+            const documentDescription = document.getElementById('documentDescription').value.trim();
+            const documentFile = document.getElementById('documentFile').files[0];
+            const documentLink = document.getElementById('documentLink').value.trim();
+
+            if (!documentTitle || !documentDescription) {
+                alert('Por favor, preencha o título e a descrição.');
+                return;
+            }
+
+            if (documentType === 'file' && !documentFile) {
+                alert('Por favor, selecione um arquivo.');
+                return;
+            }
+
+            if (documentType === 'link' && !documentLink) {
+                alert('Por favor, insira um link.');
+                return;
+            }
+
+            try {
+                let documentUrl = '';
+                if (documentType === 'file') {
+                    const storageRef = ref(storage, `documents/${documentFile.name}`);
+                    await uploadBytes(storageRef, documentFile);
+                    documentUrl = await getDownloadURL(storageRef);
+                } else {
+                    documentUrl = documentLink;
+                }
+
+                await addDoc(collection(db, "documents"), {
+                    type: documentType,
+                    title: documentTitle,
+                    description: documentDescription,
+                    url: documentUrl
+                });
+                alert('Documento adicionado com sucesso!');
+                renderDocuments();
+            } catch (error) {
+                console.error('Erro ao adicionar documento: ', error);
+                alert('Erro ao adicionar documento.');
+            }
+        }
+
+        // Função para renderizar os documentos
+        async function renderDocuments() {
+            const documentsList = document.getElementById('documents-list');
+            documentsList.innerHTML = '';
+
+            const querySnapshot = await getDocs(collection(db, "documents"));
+            querySnapshot.forEach((doc) => {
+                const document = doc.data();
+                const documentDiv = document.createElement('div');
+                documentDiv.className = 'document-item';
+                documentDiv.innerHTML = `
+                    <h3>${document.title}</h3>
+                    <p>${document.description}</p>
+                    ${document.type === 'file' ? 
+                        `<a href="${document.url}" download>Baixar Arquivo</a>` : 
+                        `<a href="${document.url}" target="_blank">Acessar Link</a>`
+                    }
+                    <button class="delete-button" onclick="deleteDocument('${doc.id}')">Excluir</button>
+                `;
+                documentsList.appendChild(documentDiv);
+            });
+        }
+
+        // Função para excluir um documento
+        async function deleteDocument(docId) {
+            try {
+                await deleteDoc(doc(db, "documents", docId));
+                alert('Documento excluído com sucesso!');
+                renderDocuments();
+            } catch (error) {
+                console.error('Erro ao excluir documento: ', error);
+            }
+        }
+
+        // Função para renderizar os usuários cadastrados
+        async function renderUsers() {
+            const usersList = document.getElementById('users-list');
+            usersList.innerHTML = '';
+
+            const querySnapshot = await getDocs(collection(db, "users"));
+            querySnapshot.forEach((doc) => {
+                const user = doc.data();
+                const userDiv = document.createElement('div');
+                userDiv.className = `user-item ${user.active ? '' : 'inactive'}`;
+                userDiv.innerHTML = `
+                    <span>Matrícula: ${user.matricula}</span>
+                    <button class="delete-button" onclick="deleteUser('${doc.id}')">Excluir</button>
+                `;
+                usersList.appendChild(userDiv);
+            });
+        }
+
+        // Função para adicionar um usuário
+        async function addUser() {
+            const matricula = document.getElementById('userMatricula').value.trim();
+
+            if (!matricula) {
+                alert('Por favor, preencha a matrícula.');
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "users"), {
+                    matricula: matricula,
+                    active: true
+                });
+                alert('Usuário adicionado com sucesso!');
+                renderUsers();
+            } catch (error) {
+                console.error('Erro ao adicionar usuário: ', error);
+                alert('Erro ao adicionar usuário.');
+            }
+        }
+
+        // Função para excluir um usuário
+        async function deleteUser(docId) {
+            try {
+                await deleteDoc(doc(db, "users", docId));
+                alert('Usuário excluído com sucesso!');
+                renderUsers();
+            } catch (error) {
+                console.error('Erro ao excluir usuário: ', error);
+            }
+        }
+
+        // Função para sair
+        function logout() {
+            localStorage.removeItem('loggedInUser');
+            window.location.href = 'index.html';
+        }
+
+        // Tornar as funções globais para que possam ser chamadas no HTML
+        window.showTab = showTab;
+        window.addMonth = addMonth;
+        window.updateMonth = updateMonth;
+        window.deleteMonth = deleteMonth;
+        window.addObject = addObject;
+        window.updateObject = updateObject;
+        window.deleteObject = deleteObject;
+        window.addDocument = addDocument;
+        window.renderDocuments = renderDocuments;
+        window.deleteDocument = deleteDocument;
+        window.renderUsers = renderUsers;
+        window.addUser = addUser;
+        window.deleteUser = deleteUser;
+        window.logout = logout;
+
+        // Renderizar dados ao carregar a página
+        renderMonths();
+        renderObjects();
+        renderDocuments();
+        renderUsers();
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Portal SECAJ - Área do Administrador</h1>
+        <div class="user-info">
+            <button class="logout-button" onclick="logout()">Sair</button>
+        </div>
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('quantitative')">Quantitativo de Processos</div>
+            <div class="tab" onclick="showTab('objects')">Objetos e Quantidades</div>
+            <div class="tab" onclick="showTab('documents')">Documentos</div>
+            <div class="tab" onclick="showTab('users')">Usuários Cadastrados</div>
+        </div>
+    </header>
+
+    <!-- Aba de Quantitativo de Processos -->
+    <div class="content active" id="quantitative">
+        <h2>Quantitativo de Processos e Seus Objetos</h2>
+        <div class="add-form">
+            <input type="text" id="monthName" placeholder="Nome do Mês">
+            <input type="number" id="monthProcessCount" placeholder="Quantidade de Processos">
+            <input type="number" id="monthOver80" placeholder="Maiores de 80">
+            <input type="number" id="monthLegalPriority" placeholder="Processos com Prioridade Legal">
+            <button onclick="addMonth()">Salvar Mês</button>
+        </div>
+        <div id="months-list"></div>
+    </div>
+
+    <!-- Aba de Objetos e Quantidades -->
+    <div class="content" id="objects">
+        <h2>Objetos e Quantidades de Processos</h2>
+        <div class="add-form">
+            <input type="text" id="objectName" placeholder="Nome do Objeto">
+            <input type="number" id="objectProcessCount" placeholder="Quantidade de Processos">
+            <input type="number" id="objectOver80" placeholder="Maiores de 80">
+            <input type="number" id="objectLegalPriority" placeholder="Processos com Prioridade Legal">
+            <button onclick="addObject()">Salvar Objeto</button>
+        </div>
+        <div id="objects-list"></div>
+    </div>
+
+    <!-- Aba de Documentos -->
+    <div class="content" id="documents">
+        <h2>Documentos</h2>
+        <div class="add-form">
+            <select id="documentType">
+                <option value="file">Arquivo</option>
+                <option value="link">Link</option>
+            </select>
+            <input type="text" id="documentTitle" placeholder="Título do Documento">
+            <input type="text" id="documentDescription" placeholder="Descrição do Documento">
+            <input type="file" id="documentFile" style="display: none;">
+            <input type="text" id="documentLink" placeholder="Link do Documento" style="display: none;">
+            <button onclick="addDocument()">Adicionar Documento</button>
+        </div>
+        <div id="documents-list"></div>
+    </div>
+
+    <!-- Aba de Usuários Cadastrados -->
+    <div class="content" id="users">
+        <h2>Usuários Cadastrados</h2>
+        <div class="add-form">
+            <input type="text" id="userMatricula" placeholder="Matrícula">
+            <button onclick="addUser()">Adicionar Usuário</button>
+        </div>
+        <div id="users-list"></div>
+    </div>
+
+    <script>
+        // Registrar o Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./service-worker.js')
+                .then((registration) => {
+                    console.log('Service Worker registrado com sucesso:', registration);
+                })
+                .catch((error) => {
+                    console.log('Falha ao registrar o Service Worker:', error);
+                });
+        }
+
+        // Mostrar/ocultar campos de arquivo ou link
+        document.getElementById('documentType').addEventListener('change', function() {
+            const documentFile = document.getElementById('documentFile');
+            const documentLink = document.getElementById('documentLink');
+            if (this.value === 'file') {
+                documentFile.style.display = 'block';
+                documentLink.style.display = 'none';
+            } else {
+                documentFile.style.display = 'none';
+                documentLink.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

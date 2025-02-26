@@ -1,124 +1,215 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Para Larissa 💖</title>
+    <title>Portal SECAJ</title>
+    <!-- Ícones do Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Manifest do PWA -->
+    <link rel="manifest" href="./manifest.json">
     <style>
+        /* Estilos Gerais */
         body {
-            background-color: #ffd3e0;
-            font-family: 'Arial', sans-serif;
-            text-align: center;
-            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            overflow: hidden;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        /* Container de Login */
+        .login-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            width: 300px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .login-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
         }
 
         h1 {
-            font-size: 3em;
-            color: #ff66b2;
-            margin-top: 50px;
-            font-weight: bold;
-            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+            font-size: 24px;
+            margin-bottom: 40px;
+            font-weight: 600;
+            color: #fff;
         }
 
-        .button {
-            background-color: #ff66b2;
-            color: white;
-            padding: 20px 40px;
-            font-size: 1.5em;
+        .input-group {
+            position: relative;
+            margin-bottom: 40px;
+        }
+
+        .input-group i {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        input {
+            width: 82%;
+            padding: 12px 12px 12px 40px; /* Espaço para o ícone */
+            margin: 1px 0;
             border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+            transition: background 0.3s ease;
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        input:focus {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #1e3c72; /* Azul escuro */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
             cursor: pointer;
-            border-radius: 10px;
-            transition: background-color 0.3s ease;
-            margin-top: 20px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: background 0.3s ease, transform 0.2s ease;
         }
 
-        .button:hover {
-            background-color: #ff3385;
+        button:hover {
+            background: #2a5298; /* Azul mais claro no hover */
+            transform: translateY(-2px);
         }
 
-        .hidden-text {
-            display: none;
-            font-size: 1.8em;
-            margin-top: 30px;
-            animation: fadeIn 1s ease;
+        .admin-link {
+            margin-top: 15px;
+            display: block;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            transition: color 0.3s ease;
         }
 
-        .heart {
-            font-size: 3em;
-            color: red;
-            animation: pulse 1.5s infinite;
-        }
-
-        .stars {
-            font-size: 2em;
-            color: #ffccff;
-            animation: sparkle 2s infinite ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 0.8; }
-            50% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(1); opacity: 0.8; }
-        }
-
-        @keyframes sparkle {
-            0% { opacity: 0.5; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.2); }
-            100% { opacity: 0.5; transform: scale(1); }
+        .admin-link:hover {
+            color: #fff;
+            text-decoration: underline;
         }
     </style>
-</head>
-<body>
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Importações do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
-    <h1>Larissa, você está prestes a descobrir três coisas incríveis (a última é a mais importante)!</h1>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyD1wD2KTGnM0vWqs8eGiFLQdOaQh77a5uw",
+            authDomain: "portal-secaj.firebaseapp.com",
+            projectId: "portal-secaj",
+            storageBucket: "portal-secaj.firebasestorage.app",
+            messagingSenderId: "580471459735",
+            appId: "1:580471459735:web:3092f388f6d4b3b48afed2",
+            measurementId: "G-CYSXWJZHTZ"
+        };
 
-    <!-- Primeira parte -->
-    <button class="button" onclick="revealFirst()">Clique aqui para a primeira surpresa!</button>
+        // Inicialização do Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
 
-    <div id="part1" class="hidden-text">
-        <p>Você tem algo especial que me encanta! 💖</p>
-        <div class="heart">❤️</div>
-        <button class="button" onclick="revealSecond()">Quer saber mais?</button>
-    </div>
+        // Função para fazer login
+        async function login() {
+            const matricula = document.getElementById('matricula').value;
 
-    <!-- Segunda parte -->
-    <div id="part2" class="hidden-text">
-        <p><em>"Eu não consigo parar de pensar em você..."</em></p>
-        <div class="stars">✨✨✨</div>
-        <button class="button" onclick="revealThird()">Clique para a última e melhor surpresa!</button>
-    </div>
-
-    <!-- Terceira parte -->
-    <div id="part3" class="hidden-text">
-        <p><strong>Eu adoraria te levar para o motel e tirar toda a sua roupa, Larissa!</strong></p>
-        <div class="heart">❤️❤️</div>
-    </div>
-
-    <script>
-        function revealFirst() {
-            document.querySelector('h1').style.display = 'none';  // Remove o título inicial
-            document.querySelector('.button').style.display = 'none';  // Remove o primeiro botão
-            document.getElementById('part1').style.display = 'block';  // Exibe a primeira surpresa
+            try {
+                // Verificar se a matrícula existe
+                const q = query(collection(db, "users"), where("matricula", "==", matricula));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    localStorage.setItem('loggedInUser', matricula);
+                    window.location.href = 'portal.html';
+                } else {
+                    alert('Matrícula não cadastrada.');
+                }
+            } catch (error) {
+                console.error('Erro ao fazer login: ', error);
+                alert('Erro ao fazer login.');
+            }
         }
 
-        function revealSecond() {
-            document.getElementById('part1').style.display = 'none';  // Remove a primeira surpresa
-            document.getElementById('part2').style.display = 'block';  // Exibe a segunda surpresa
+        // Função para acessar a área do administrador
+        function openAdmin() {
+            const adminPassword = prompt('Digite a senha do administrador:');
+            if (adminPassword === '23019797') {
+                window.location.href = 'admin.html';
+            } else {
+                alert('Senha incorreta.');
+            }
         }
 
-        function revealThird() {
-            document.getElementById('part2').style.display = 'none';  // Remove a segunda surpresa
-            document.getElementById('part3').style.display = 'block';  // Exibe a terceira surpresa
+        // Tornar as funções globais para que possam ser chamadas no HTML
+        window.login = login;
+        window.openAdmin = openAdmin;
+
+        // Função para escolher uma imagem de fundo aleatória
+        function setRandomBackground() {
+            const images = [
+                './Imagens/Imagem1.jpg',
+                './Imagens/Imagem2.jpg',
+                './Imagens/Imagem3.jpg',
+                './Imagens/Imagem4.jpg',
+                './Imagens/Imagem5.jpg',
+                './Imagens/Imagem6.jpg',
+                './Imagens/Imagem7.jpg'
+            ];
+            const randomImage = images[Math.floor(Math.random() * images.length)];
+            document.body.style.backgroundImage = `url('${randomImage}')`;
+        }
+
+        // Definir a imagem de fundo ao carregar a página
+        setRandomBackground();
+
+        // Registrar o Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./service-worker.js')
+                .then((registration) => {
+                    console.log('Service Worker registrado com sucesso:', registration);
+                })
+                .catch((error) => {
+                    console.log('Falha ao registrar o Service Worker:', error);
+                });
         }
     </script>
-
+</head>
+<body>
+    <div class="login-container">
+        <h1>Portal SECAJ</h1>
+        <div id="login-form">
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" id="matricula" placeholder="Matrícula">
+            </div>
+            <button onclick="login()">Login</button>
+            <p class="admin-link" onclick="openAdmin()">Área do Administrador</p>
+        </div>
+    </div>
 </body>
 </html>
